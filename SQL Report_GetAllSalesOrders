@@ -1,0 +1,36 @@
+Use Northwind
+Go
+
+CREATE PROCEDURE sp_getAllSalesOrders
+AS
+BEGIN
+    SET NOCOUNT ON
+
+
+    Select 
+        ord.OrderID,
+        dbo.fn_CalculateOrderValue(ord.OrderID) As TotalOrderValue,
+        cus.CustomerID,
+        cus.CompanyName As CustomerName,
+        cus.ContactTitle,
+        cus.ContactName,
+        cus.Phone As ContactNumber,
+        cus.country As CustomerCountry,
+        emp.Title As OrderSalesManTitle,
+        Concat(emp.TitleOfCourtesy,' ',emp.FirstName,' ',emp.LastName) As OrderSalesMan, 
+        Cast(ord.OrderDate As date) As OrderDate,
+        Cast(ord.RequiredDate As Date) As OrderRequiredDate,
+        Cast(ord.ShippedDate As Date) As OrderShippedDate ,
+        ord.ShipName,
+        IsNull(ord.ShipAddress,'') As ShipAddress,
+        IsNull(ord.ShipCity,'') As ShipCity,
+        IsNull(ord.ShipRegion,'') As ShipRegion,
+        IsNull(ord.ShipCountry,'') As ShipCountry
+    From Orders As ord With(noLock)
+    Inner Join Customers As cus With(noLock)
+        On ord.CustomerID=cus.CustomerID
+    Inner Join Employees As emp With(noLock)
+        On ord.EmployeeID=emp.EmployeeID
+    Order By ord.OrderID
+
+END
