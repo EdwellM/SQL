@@ -1,0 +1,27 @@
+/*
+    Author : Edwell Msakwa
+    Notes : Table valued function retrieves Order details including totalCost/lineCost
+
+*/
+CREATE FUNCTION [dbo].[fn_getOrderLineDetails](@OrderID Int)
+RETURNS TABLE
+AS
+RETURN
+(
+    Select 
+        ord.OrderID,
+        prod.ProductID,
+        prod.ProductName,
+        cat.CategoryName,
+        ord.UnitPrice,
+        ord.Quantity,
+        ord.Discount,
+        Cast(((ord.UnitPrice*Quantity) * (1-Discount)) As Decimal(18,2)) As TotalCost
+    From Products As prod With(noLock)
+    Inner Join Categories cat With(noLock)
+        on prod.CategoryID=cat.CategoryID
+    Inner Join [Order Details] ord WITH(noLock)
+        on ord.ProductID=prod.ProductID
+    Where ord.OrderID= @OrderID
+)
+GO
