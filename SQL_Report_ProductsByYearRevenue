@@ -1,0 +1,67 @@
+/*  
+    Author : Edwell Msakwa
+    Report : Retrieve a list of products that have a generated more than $5000 in revenue in 1996;
+    Fields : ProductName, ProductID, CategoryName; OrderBy : ProductName
+    Comments : Report utilizes a temp table.
+
+*/
+Use NorthWind
+Go
+
+/* Method Call: EXECUTE sp_Report_ProductsByYearlyRevenue 1996,700 */
+
+CREATE PROCEDURE dbo.sp_Report_ProductsByYearlyRevenue( @Year Int, @MinRevenue Money)
+AS
+BEGIN
+   
+    SET NOCOUNT ON;
+
+    -- input validation
+    If((@Year is null) Or (@MinRevenue is null))
+        Begin
+         RAISERROR('Report requires input parameter. Add parameters to retrieve data!!',1,16)
+         RETURN
+        END
+
+
+    -- --create temp table
+    CREATE TABLE #ProductRevenue(
+        ProductID Int,
+        TotalRevenue Money 
+    )
+
+    -- -- index table
+    CREATE INDEX  indx_ProductRevenue on #ProductRevenue(ProductID);
+
+    /* Extract data for calculation */
+    INSERT INTO #ProductRevenue
+    SELECT
+        dtl.ProductID,
+        Sum((dtl.UnitPrice * dtl.Quantity) * (1-dtl.Discount)) As TotalRevenue
+    FROM Orders ord With(noLock)
+    INNER JOIN [Order Details] dtl WITH(noLock)
+        on ord.OrderID= dtl.OrderID
+    INNER Join Products prod WITH(noLock)
+        On dtl.ProductID=prod.ProductID
+    WHERE  DateName(yyyy,ord.OrderDate) = @Year
+    GROUP BY dtl.ProductID
+
+    /* retrive fields */
+    Select 
+        prd.ProductName,
+        prd.ProductID,
+        cat.CategoryName,
+        Cast(prdct.TotalRevenue AS Decimal(18,2)) As TotalRevenue
+    FROM #ProductRevenue as prdct
+    Inner Join Products prd WITH(noLock)
+        on prdct.ProductID= prd.ProductID
+    Inner Join Categories cat with(noLock)
+        on cat.CategoryID=prd.CategoryID
+    Where TotalRevenue >= @MinRevenue
+    Order By ProductName,
+            prd.ProductID
+
+
+    /* Remove Temp Table */
+    Drop Table If EXISTS #ProductRevenue
+END
