@@ -1,0 +1,26 @@
+/*
+    Author : Edwell Msakwa
+    Notes : Scalar function calculates and retrieve total order value
+*/
+CREATE Function [dbo].[fn_CalculateOrderValue](@OrderID Int)
+Returns Money
+As
+BEGIN
+    /* Calculate the Order Total*/
+    DECLARE @OrderTotalValue Money
+    Set @OrderTotalValue=0
+
+    IF(@OrderID is null)
+     Begin
+        RETURN null
+     End
+ 
+    Select
+        @OrderTotalValue = Sum( (UnitPrice*Quantity) * (1-Discount))
+    From [Order Details] With(noLock)
+    Where OrderID=  @OrderID
+
+    
+    RETURN Cast(@OrderTotalValue As Decimal(18,2));
+End
+GO
